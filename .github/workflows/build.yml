@@ -1,0 +1,81 @@
+name: Build and Release RizzlersProxyLogger
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Test Plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Run Maven Clean Verify (Automated Tests)
+        run: mvn --batch-mode clean verify
+
+      - name: Run Maven Package Build
+        run: mvn --batch-mode package
+
+      - name: Locate and Verify Compiled JAR
+        id: inspect_jar
+        run: |
+          JAR_PATH=$(find target -maxdepth 1 -name "RizzlersProxyLogger-*.jar" ! -name "original-*" | head -n 1)
+          if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
+            echo "ERROR: Compiled JAR file not found in target/!"
+            ls -la target/
+            exit 1
+          fi
+          JAR_FILENAME=$(basename "$JAR_PATH")
+          echo "Found JAR: $JAR_FILENAME at $JAR_PATH"
+          echo "jar_path=$JAR_PATH" >> $GITHUB_OUTPUT
+          echo "jar_filename=$JAR_FILENAME" >> $GITHUB_OUTPUT
+
+          echo "=== Inspecting JAR Manifest and Files ==="
+          jar tf "$JAR_PATH"
+
+          echo "=== Checking Critical Plugin Entries ==="
+          jar tf "$JAR_PATH" | grep -E "velocity-plugin\.json" || { echo "ERROR: velocity-plugin.json is missing"; exit 1; }
+          jar tf "$JAR_PATH" | grep -E "config\.yml" || { echo "ERROR: config.yml is missing"; exit 1; }
+          jar tf "$JAR_PATH" | grep -E "RizzlersProxyLogger\.class" || { echo "ERROR: Main class is missing"; exit 1; }
+          jar tf "$JAR_PATH" | grep -E "AccessManager\.class" || { echo "ERROR: AccessManager is missing"; exit 1; }
+          jar tf "$JAR_PATH" | grep -E "DatabaseManager\.class" || { echo "ERROR: DatabaseManager is missing"; exit 1; }
+          jar tf "$JAR_PATH" | grep -E "DiscordService\.class" || { echo "ERROR: DiscordService is missing"; exit 1; }
+          echo "Verification passed: All required plugin metadata, configuration, and classes are present!"
+
+      - name: Upload GitHub Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.inspect_jar.outputs.jar_filename }}
+          path: ${{ steps.inspect_jar.outputs.jar_path }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish GitHub Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "RizzlersProxyLogger v1.0.0"
+          tag_name: "v1.0.0"
+          files: ${{ steps.inspect_jar.outputs.jar_path }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,56 @@
+# RIZZLERS ProxyLogger configuration for Velocity proxy
+# Environment variables or this config file may be used for sensitive credentials.
+
+network:
+  name: "RIZZLERS"
+  require-link: true
+  access-check-scope: "network" # network | per-server
+  protected-servers: ["lobby", "survival"]
+  deny-on-provider-error: true
+
+# Discord bot configuration
+# IDs are strings to preserve exact 64-bit Discord snowflakes.
+discord:
+  bot-token-env: "RIZZLERS_DISCORD_TOKEN"
+  bot-token: ""
+  guild-id: "REPLACE_WITH_GUILD_ID"
+  access-role-id: "REPLACE_WITH_REQUIRED_ROLE_ID"
+  blacklist-role-id: "REPLACE_WITH_BLACKLIST_ROLE_ID"
+  log-guild-id: "REPLACE_WITH_LOG_GUILD_ID"
+  log-channel-id: "REPLACE_WITH_LOG_CHANNEL_ID"
+  link-instructions: "Join the RIZZLERS Discord and run /link <code>."
+
+linking:
+  code-expiry-seconds: 300
+  max-attempts-per-hour: 5
+  max-active-links-per-discord: 1
+  allow-unlink: true
+
+storage:
+  driver: "mysql" # mysql | sqlite
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "rizzlers_proxylogger"
+    username: "CHANGE_ME"
+    password-env: "RIZZLERS_DB_PASSWORD"
+    password: ""
+    ssl: true
+  sqlite:
+    file: "proxylogger.db"
+
+logging:
+  local-file: true
+  log-joins: true
+  log-quits: true
+  log-denied-attempts: true
+  log-role-check-failures: true
+  log-link-events: true
+  log-admin-changes: true
+  include-ip-address: false
+
+messages:
+  unlinked: "<red>You must link your Discord account before joining RIZZLERS.<newline><yellow>Run <bold>/plog link</bold> in-game or visit our Discord: discord.gg/rizzlers</yellow></red>"
+  missing-access-role: "<red>Access denied: You do not have the required RIZZLERS Discord role.<newline><gray>Make sure your linked Discord account has the verified role.</gray></red>"
+  blacklisted: "<red><bold>ACCESS DENIED</bold></red><newline><red>Your linked Discord account has been blacklisted from the RIZZLERS network.<newline><gray>If you believe this is an error, please open a staff ticket.</gray></red>"
+  verification-unavailable: "<red>RIZZLERS access verification is temporarily unavailable.<newline><gray>Please try reconnecting in a few moments.</gray></red>"
