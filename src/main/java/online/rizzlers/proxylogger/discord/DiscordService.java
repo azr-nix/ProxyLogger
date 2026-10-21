@@ -89,11 +89,7 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
 
         Guild guild = jda.getGuildById(guildId);
         if (guild == null) {
-            try {
-                guild = jda.retrieveGuildById(guildId).complete();
-            } catch (Exception e) {
-                throw new IllegalStateException("Configured Discord guild (" + guildId + ") not found or bot lacks access.", e);
-            }
+            throw new IllegalStateException("Configured Discord guild (" + guildId + ") not found or bot lacks access.");
         }
 
         Member member;
