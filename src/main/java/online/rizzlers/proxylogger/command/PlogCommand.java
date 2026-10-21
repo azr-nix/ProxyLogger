@@ -116,19 +116,25 @@ public class PlogCommand implements SimpleCommand {
     }
 
     private void handleUnlink(CommandSource source, String[] args) {
-        if (args.length > 1 && source.hasPermission(PERM_ADMIN)) {
+        if (args.length > 1) {
+            if (!source.hasPermission(PERM_ADMIN)) {
+                source.sendMessage(miniMessage.deserialize("<red>You do not have permission to unlink other players. Only administrators can use /plog unlink <player>.</red>"));
+                return;
+            }
             // Admin unlinking target
             String target = args[1];
             try {
                 boolean success;
                 if (target.contains("-") && target.length() == 36) {
                     success = databaseManager.unlinkAccount(UUID.fromString(target));
-                } else {
+                } else if (target.matches("\\d{17,20}")) {
                     success = databaseManager.unlinkAccountByDiscordId(target);
+                } else {
+                    success = databaseManager.unlinkAccountByUsername(target);
                 }
                 if (success) {
                     source.sendMessage(miniMessage.deserialize("<green>Successfully unlinked target: " + target + "</green>"));
-                    auditLogger.log(AuditEvent.create("ADMIN_UNLINK", null, null, target, config.getGuildId(), null, "SUCCESS", "Admin unlinked: " + target));
+                    auditLogger.log(AuditEvent.create("ADMIN_UNLINK", null, target, target, config.getGuildId(), null, "SUCCESS", "Admin unlinked: " + target));
                 } else {
                     source.sendMessage(miniMessage.deserialize("<red>Target account was not found or already unlinked.</red>"));
                 }
@@ -139,7 +145,12 @@ public class PlogCommand implements SimpleCommand {
         }
 
         if (!(source instanceof Player player)) {
-            source.sendMessage(miniMessage.deserialize("<red>Console must specify target to unlink: /plog unlink <uuid-or-discord-id></red>"));
+            source.sendMessage(miniMessage.deserialize("<red>Console must specify target to unlink: /plog unlink <player></red>"));
+            return;
+        }
+
+        if (!config.isAllowUnlink()) {
+            player.sendMessage(miniMessage.deserialize("<red>Self-unlinking is disabled on the RIZZLERS network. Please contact staff to unlink your account.</red>"));
             return;
         }
 

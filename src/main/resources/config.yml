@@ -14,11 +14,12 @@ discord:
   bot-token-env: "RIZZLERS_DISCORD_TOKEN"
   bot-token: ""
   guild-id: "REPLACE_WITH_GUILD_ID"
-  access-role-id: "REPLACE_WITH_REQUIRED_ROLE_ID"
+  access-role-id: "1562144036402368614"
   blacklist-role-id: "REPLACE_WITH_BLACKLIST_ROLE_ID"
   log-guild-id: "REPLACE_WITH_LOG_GUILD_ID"
   log-channel-id: "REPLACE_WITH_LOG_CHANNEL_ID"
   link-instructions: "Join the RIZZLERS Discord and run /link <code>."
+  cache-ttl-seconds: 180
 
 linking:
   code-expiry-seconds: 300
@@ -29,10 +30,10 @@ linking:
 storage:
   driver: "mysql" # mysql | sqlite
   mysql:
-    host: "127.0.0.1"
+    host: "de1.plugged.host"
     port: 3306
-    database: "rizzlers_proxylogger"
-    username: "CHANGE_ME"
+    database: "REPLACE_WITH_DATABASE_NAME"
+    username: "REPLACE_WITH_DATABASE_USERNAME"
     password-env: "RIZZLERS_DB_PASSWORD"
     password: ""
     ssl: true

@@ -26,8 +26,8 @@ import java.util.List;
 
 @Plugin(
         id = "rizzlersproxylogger",
-        name = "RizzlersProxyLogger",
-        version = "1.0.0",
+        name = "RIZZLERS ProxyLogger",
+        version = "1.1.0",
         description = "Discord role-gated access control and audit logging for Velocity proxy on RIZZLERS network.",
         authors = {"RIZZLERS"}
 )
@@ -108,7 +108,7 @@ public class RizzlersProxyLogger {
         PlogCommand command = new PlogCommand(config, accessManager, databaseManager, discordService, auditLogger, this::reloadPlugin);
         commandManager.register(meta, command);
 
-        logger.info("RIZZLERS ProxyLogger v1.0.0 enabled successfully. Pre-login access enforcement is active.");
+        logger.info("RIZZLERS ProxyLogger v1.1.0 enabled successfully. Pre-login access enforcement is active.");
     }
 
     public void reloadPlugin() {

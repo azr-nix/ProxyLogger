@@ -41,6 +41,13 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
     private JDA jda;
     private boolean ready = false;
 
+    private record CachedRoles(Set<String> roles, Instant fetchedAt) {
+        public boolean isExpired(long ttlSeconds) {
+            return Instant.now().isAfter(fetchedAt.plusSeconds(ttlSeconds));
+        }
+    }
+    private final Map<String, CachedRoles> roleCache = new ConcurrentHashMap<>();
+
     public DiscordService(PluginConfig config, DatabaseManager databaseManager, Logger logger) {
         this.config = config;
         this.databaseManager = databaseManager;
@@ -62,15 +69,30 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
                     .addEventListeners(this)
                     .build();
 
-            // Register Discord slash commands
+            // Register Discord slash commands globally and to the configured guild for immediate availability
             this.jda.updateCommands().addCommands(
                     Commands.slash("link", "Link your Discord account to your Minecraft player on RIZZLERS")
                             .addOption(OptionType.STRING, "code", "The 6-character code generated in-game via /plog link", true),
                     Commands.slash("unlink", "Unlink your Discord account from the RIZZLERS network")
             ).queue(
-                    success -> { if (logger != null) logger.info("Registered /link and /unlink Discord slash commands."); },
-                    error -> { if (logger != null) logger.warning("Failed to register Discord commands: " + error.getMessage()); }
+                    success -> { if (logger != null) logger.info("Registered /link and /unlink global Discord slash commands."); },
+                    error -> { if (logger != null) logger.warning("Failed to register global Discord commands: " + error.getMessage()); }
             );
+
+            String guildId = config.getGuildId();
+            if (guildId != null && !guildId.isBlank() && !guildId.contains("REPLACE")) {
+                Guild guild = this.jda.getGuildById(guildId);
+                if (guild != null) {
+                    guild.updateCommands().addCommands(
+                            Commands.slash("link", "Link your Discord account to your Minecraft player on RIZZLERS")
+                                    .addOption(OptionType.STRING, "code", "The 6-character code generated in-game via /plog link", true),
+                            Commands.slash("unlink", "Unlink your Discord account from the RIZZLERS network")
+                    ).queue(
+                            success -> { if (logger != null) logger.info("Registered /link and /unlink commands directly to guild " + guildId); },
+                            error -> { if (logger != null) logger.warning("Failed to register commands to guild " + guildId + ": " + error.getMessage()); }
+                    );
+                }
+            }
 
             this.ready = true;
             if (logger != null) logger.info("Discord JDA bot initialized successfully.");
@@ -85,6 +107,11 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
     public Set<String> getMemberRoles(String guildId, String discordId) throws Exception {
         if (!isReady() || jda == null) {
             throw new IllegalStateException("Discord service is not connected.");
+        }
+
+        CachedRoles cached = roleCache.get(discordId);
+        if (cached != null && !cached.isExpired(config.getCacheTtlSeconds())) {
+            return cached.roles();
         }
 
         Guild guild = jda.getGuildById(guildId);
@@ -103,9 +130,11 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
             return Collections.emptySet();
         }
 
-        return member.getRoles().stream()
+        Set<String> roles = member.getRoles().stream()
                 .map(ISnowflake::getId)
                 .collect(Collectors.toSet());
+        roleCache.put(discordId, new CachedRoles(roles, Instant.now()));
+        return roles;
     }
 
     @Override
@@ -149,6 +178,7 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
                     );
                     databaseManager.recordAudit(audit);
                     sendLogEmbed(audit);
+                    roleCache.remove(discordId);
                 } else {
                     event.reply("❌ " + result.message()).setEphemeral(true).queue();
                 }
@@ -158,7 +188,13 @@ public class DiscordService extends ListenerAdapter implements DiscordRoleProvid
                         .setEphemeral(true).queue();
             }
         } else if ("unlink".equalsIgnoreCase(event.getName())) {
+            if (!config.isAllowUnlink()) {
+                event.reply("❌ Self-unlinking is disabled by server policy. Please contact RIZZLERS staff to unlink your account.")
+                        .setEphemeral(true).queue();
+                return;
+            }
             String discordId = event.getUser().getId();
+            roleCache.remove(discordId);
             try {
                 boolean unlinked = databaseManager.unlinkAccountByDiscordId(discordId);
                 if (unlinked) {

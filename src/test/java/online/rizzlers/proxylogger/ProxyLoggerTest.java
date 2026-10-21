@@ -329,4 +329,73 @@ public class ProxyLoggerTest {
             assertEquals("Unit test verification", rs.getString("reason"));
         }
     }
+
+    @Test
+    @DisplayName("Verify invalid linking code is rejected")
+    public void testInvalidLinkingCodeRejected() throws SQLException {
+        String randomInvalidHash = DiscordService.sha256("INVALID_CODE_999");
+        DatabaseManager.LinkResult result = databaseManager.consumeLinkCode(randomInvalidHash, "999000111222333444");
+
+        assertFalse(result.success(), "Invalid link code must not succeed");
+        assertTrue(result.message().contains("Invalid or expired"), "Message must explain code is invalid or expired");
+    }
+
+    @Test
+    @DisplayName("Verify expired linking code is rejected and purged")
+    public void testExpiredCodeRejected() throws SQLException {
+        UUID uuid = UUID.randomUUID();
+        String code = "EXP123";
+        String hash = DiscordService.sha256(code);
+        Instant expiredTime = Instant.now().minusSeconds(60); // 1 minute in the past
+
+        // Directly insert an already-expired link code
+        databaseManager.createLinkCode(uuid, "ExpiredUser", "offline", hash, expiredTime);
+
+        DatabaseManager.LinkResult result = databaseManager.consumeLinkCode(hash, "888777666555444333");
+        assertFalse(result.success(), "Expired code must be rejected");
+        assertTrue(result.message().contains("expired"), "Message should mention expiry");
+
+        // Verify it was purged from the table
+        Optional<online.rizzlers.proxylogger.database.models.LinkCode> optCode = databaseManager.getLinkCode(hash);
+        assertTrue(optCode.isEmpty(), "Expired code must be purged after consumption attempt");
+    }
+
+    @Test
+    @DisplayName("Verify administrator unlinking by username")
+    public void testAdminUnlinkByUsername() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        String discordId = "555444333222111000";
+
+        // Link user
+        String code = accessManager.generateLinkCode(uuid, "TargetPlayer", "online");
+        DatabaseManager.LinkResult linkResult = databaseManager.consumeLinkCode(DiscordService.sha256(code), discordId);
+        assertTrue(linkResult.success());
+
+        // Verify account is initially linked
+        Optional<LinkedAccount> linkedOpt = databaseManager.getLinkedAccount(uuid);
+        assertTrue(linkedOpt.isPresent());
+        assertTrue(linkedOpt.get().isLinked());
+
+        // Admin unlinks by username
+        boolean unlinked = databaseManager.unlinkAccountByUsername("TargetPlayer");
+        assertTrue(unlinked, "Admin unlink by username must return true");
+
+        // Verify account is now unlinked
+        Optional<LinkedAccount> afterOpt = databaseManager.getLinkedAccount(uuid);
+        assertTrue(afterOpt.isPresent());
+        assertFalse(afterOpt.get().isLinked(), "Account link status must be unlinked");
+    }
+
+    @Test
+    @DisplayName("Verify configuration validation flags missing required credentials")
+    public void testConfigurationValidation() {
+        // Empty configuration triggers warnings
+        PluginConfig emptyConfig = new PluginConfig();
+        java.util.List<String> warnings = emptyConfig.validate();
+
+        assertFalse(warnings.isEmpty(), "Validation must return warnings for empty/placeholder config");
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("Discord bot token")), "Must warn about bot token");
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("discord.guild-id")), "Must warn about guild ID");
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("discord.log-channel-id")), "Must warn about log channel ID");
+    }
 }

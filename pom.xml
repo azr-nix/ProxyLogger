@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>online.rizzlers</groupId>
-    <artifactId>RizzlersProxyLogger</artifactId>
-    <version>1.0.0</version>
+    <artifactId>rizzlers-proxylogger</artifactId>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
-    <name>RizzlersProxyLogger</name>
+    <name>rizzlers-proxylogger</name>
     <description>Discord role-gated access control and audit logging for Velocity proxy on RIZZLERS network.</description>
 
     <properties>

@@ -330,6 +330,14 @@ public class DatabaseManager implements AutoCloseable {
         }
     }
 
+    public boolean unlinkAccountByUsername(String username) throws SQLException {
+        String sql = "UPDATE linked_accounts SET link_status = 'unlinked' WHERE LOWER(minecraft_username) = LOWER(?)";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public boolean unlinkAccountByDiscordId(String discordId) throws SQLException {
         String sql = "UPDATE linked_accounts SET link_status = 'unlinked' WHERE discord_id = ?";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {

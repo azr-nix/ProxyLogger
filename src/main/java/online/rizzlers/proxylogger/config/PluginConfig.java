@@ -24,6 +24,7 @@ public class PluginConfig {
     private String logGuildId = "";
     private String logChannelId = "";
     private String linkInstructions = "Join the RIZZLERS Discord and run /link <code>.";
+    private int cacheTtlSeconds = 180;
 
     private int codeExpirySeconds = 300;
     private int maxAttemptsPerHour = 5;
@@ -87,6 +88,7 @@ public class PluginConfig {
             config.logGuildId = sanitizeSnowflake(getString(discord, "log-guild-id", ""));
             config.logChannelId = sanitizeSnowflake(getString(discord, "log-channel-id", ""));
             config.linkInstructions = getString(discord, "link-instructions", config.linkInstructions);
+            config.cacheTtlSeconds = getInt(discord, "cache-ttl-seconds", config.cacheTtlSeconds);
         }
 
         // Linking
@@ -216,6 +218,7 @@ public class PluginConfig {
     public String getLogChannelId() { return logChannelId; }
     public void setLogChannelId(String logChannelId) { this.logChannelId = logChannelId; }
     public String getLinkInstructions() { return linkInstructions; }
+    public int getCacheTtlSeconds() { return cacheTtlSeconds; }
     public int getCodeExpirySeconds() { return codeExpirySeconds; }
     public int getMaxAttemptsPerHour() { return maxAttemptsPerHour; }
     public int getMaxActiveLinksPerDiscord() { return maxActiveLinksPerDiscord; }

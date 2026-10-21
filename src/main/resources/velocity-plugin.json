@@ -1,0 +1,11 @@
+{
+  "id": "rizzlersproxylogger",
+  "name": "RIZZLERS ProxyLogger",
+  "version": "1.1.0",
+  "description": "Discord role-gated access control and audit logging for Velocity proxy on RIZZLERS network.",
+  "authors": [
+    "RIZZLERS"
+  ],
+  "dependencies": [],
+  "main": "online.rizzlers.proxylogger.RizzlersProxyLogger"
+}

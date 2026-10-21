@@ -37,7 +37,7 @@ jobs:
       - name: Locate and Verify Compiled JAR
         id: inspect_jar
         run: |
-          JAR_PATH=$(find target -maxdepth 1 -name "RizzlersProxyLogger-*.jar" ! -name "original-*" | head -n 1)
+          JAR_PATH=$(find target -maxdepth 1 \( -name "rizzlers-proxylogger-*.jar" -o -name "RizzlersProxyLogger-*.jar" \) ! -name "original-*" | head -n 1)
           if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
             echo "ERROR: Compiled JAR file not found in target/!"
             ls -la target/
@@ -71,8 +71,8 @@ jobs:
       - name: Publish GitHub Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          name: "RizzlersProxyLogger v1.0.0"
-          tag_name: "v1.0.0"
+          name: "RIZZLERS ProxyLogger v1.1.0"
+          tag_name: "v1.1.0"
           files: ${{ steps.inspect_jar.outputs.jar_path }}
           draft: false
           prerelease: false
